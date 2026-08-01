@@ -422,7 +422,7 @@
 
   // Google Apps Script (Webアプリ)のURLをここに設定してください。
   // 例: https://script.google.com/macros/s/xxxxxxxx/exec
-  const DRIVE_UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbzp3Bz39jaZx3St36AFxnmq0SwGo_3iV45oYfrAShotDDnrGsZ_wZEGUD4c2Q8BGufmUg/exec';
+  const DRIVE_UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbzWcwrMG4X244PhAcn-pS9EtzAt6PEwZZ-mHe0HlCSxg6G_E__4ZxO1zQEB5BrlTlz3Bw/exec';
 
   function downloadFile(dataUrl, filename){
     try{
@@ -435,22 +435,46 @@
     }catch(err){ console.error('download error', err); }
   }
 
-  // Apps Script Webアプリへ画像を送信(no-corsのため送信結果は確認できません)
-  async function uploadToDrive(dataUrl, filename, mimeType){
-    if(!DRIVE_UPLOAD_URL) return false;
-    try{
-      const base64Data = dataUrl.split(',')[1];
-      await fetch(DRIVE_UPLOAD_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ filename, mimeType, dataBase64: base64Data }),
-      });
-      return true;
-    }catch(err){
-      console.error('drive upload error', err);
-      return false;
-    }
+  // Apps Script Webアプリへ画像を送信(隠しフォーム送信方式。fetchのCORS問題を回避)
+  function uploadToDrive(dataUrl, filename, mimeType){
+    return new Promise((resolve)=>{
+      if(!DRIVE_UPLOAD_URL){ resolve(false); return; }
+      try{
+        const base64Data = dataUrl.split(',')[1];
+        const payload = JSON.stringify({ filename, mimeType, dataBase64: base64Data });
+
+        let iframe = document.getElementById('driveUploadFrame');
+        if(!iframe){
+          iframe = document.createElement('iframe');
+          iframe.id = 'driveUploadFrame';
+          iframe.name = 'driveUploadFrame';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = DRIVE_UPLOAD_URL;
+        form.target = 'driveUploadFrame';
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'payload';
+        input.value = payload;
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        // クロスオリジンのため送信結果を直接読み取ることはできないので、
+        // 送信操作自体が例外なく完了したら成功とみなします。
+        setTimeout(()=> resolve(true), 600);
+      }catch(err){
+        console.error('drive upload error', err);
+        resolve(false);
+      }
+    });
   }
 
   function renderChecklist(){

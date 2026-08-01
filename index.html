@@ -361,7 +361,6 @@
       <h2>チェックインが完了しました</h2>
       <p class="desc">スタッフが内容を確認し、直筆でのご署名をいただいたのち鍵をお渡しします。<br>少々お待ちください。</p>
       <div class="done-id" id="doneId"></div>
-      <div class="error-note" id="saveError" style="display:none;">※ 送信データの保存に失敗しました。スタッフへお声がけください。</div>
     </section>
 
   </main>
@@ -562,32 +561,10 @@
     nextBtn.disabled = true;
     nextBtn.textContent = '送信中...';
     const checkinId = 'CI-' + Date.now().toString(36).toUpperCase();
-    const record = {
-      id: checkinId,
-      submittedAt: new Date().toISOString(),
-      name: state.name,
-      phone: state.phone,
-      prohibitedChecks: state.checks,
-      chargeAck: state.chargeAck,
-      finalAck: state.finalAck,
-      hasFrontLicense: !!state.front,
-      hasBackLicense: !!state.back,
-      frontImage: state.front,
-      backImage: state.back,
-    };
-    let saveFailed = false;
-    try{
-      const result = await window.storage.set('checkins:' + checkinId, JSON.stringify(record), true);
-      if(!result) saveFailed = true;
-    }catch(err){
-      saveFailed = true;
-      console.error('storage error', err);
-    }
     navBar.style.display='none';
     document.querySelectorAll('.step').forEach(s=>s.style.display='none');
     document.getElementById('stepDone').style.display='block';
     document.getElementById('doneId').textContent = '受付番号: ' + checkinId;
-    document.getElementById('saveError').style.display = saveFailed ? 'block' : 'none';
   });
 
   showStep();
